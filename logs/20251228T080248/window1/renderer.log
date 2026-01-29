@@ -1,0 +1,8 @@
+2025-12-28 08:02:50.959 [info] ChatSessionStore: Migrating 0 chat sessions from storage service to file system
+2025-12-28 08:02:51.090 [info] Started local extension host with pid 1052646.
+2025-12-28 08:02:51.108 [info] Started initializing default profile extensions in extensions installation folder. file:///root/.vscode/extensions
+2025-12-28 08:02:51.261 [info] Completed initializing default profile extensions in extensions installation folder. file:///root/.vscode/extensions
+2025-12-28 08:02:51.665 [info] MCP Registry configured: https://api.mcp.github.com
+2025-12-28 08:02:51.778 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2025-12-28 08:02:55.343 [info] [perf] Render performance baseline is 10ms
+2025-12-28 08:02:59.379 [error] lock() request could not be registered.: InvalidStateError: lock() request could not be registered.

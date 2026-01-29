@@ -887,6 +887,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa, bool strict)
 
   add_insn(new disasm_insn_t("unimp", match_csrrw|(CSR_CYCLE<<20), 0xffffffff, {}));
   add_insn(new disasm_insn_t("c.unimp", 0, 0xffff, {}));
+  add_insn(new disasm_insn_t("halt", match_halt, mask_halt, {}));
 
   // Following are HINTs, so they must precede their corresponding base-ISA
   // instructions.  We do not condition them on Zicbop/Zihintpause because,
@@ -2303,6 +2304,8 @@ disassembler_t::disassembler_t(const isa_parser_t *isa, bool strict)
     // finally: instructions with known opcodes but unknown arguments
     add_unknown_insns(this);
   }
+
+  add_insn(new disasm_insn_t("halt", 0xffffffff, 0xffffffff, {}));
 
   // Now, reverse the lists, because we search them back-to-front (so that
   // custom instructions later added with add_insn have highest priority).

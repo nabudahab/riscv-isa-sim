@@ -18,8 +18,14 @@
 #include <cassert>
 #include <signal.h>
 #include <unistd.h>
+#include <mutex>
+#include <set>
 #include <sys/wait.h>
 #include <sys/types.h>
+
+std::set<size_t> halted_harts;
+std::mutex halt_lock;
+size_t global_nprocs = 0; 
 
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
@@ -62,6 +68,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     remote_bitbang(NULL),
     debug_module(this, dm_config)
 {
+  global_nprocs = nprocs();
+  
   signal(SIGINT, &handle_signal);
 
   sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
@@ -287,7 +295,11 @@ void sim_t::step(size_t n)
   for (size_t i = 0, steps = 0; i < n; i += steps)
   {
     steps = std::min(n - i, INTERLEAVE - current_step);
-    procs[current_proc]->step(steps);
+
+    if(!halted_harts.count(procs[current_proc]->get_id()))
+    {
+      procs[current_proc]->step(steps);
+    }
 
     current_step += steps;
     if (current_step == INTERLEAVE)
@@ -397,8 +409,8 @@ void sim_t::set_rom()
   const int align = 0x1000;
   rom.resize((rom.size() + align - 1) / align * align);
 
-  std::shared_ptr<rom_device_t> boot_rom(new rom_device_t(rom));
-  add_device(DEFAULT_RSTVEC, boot_rom);
+  // std::shared_ptr<rom_device_t> boot_rom(new rom_device_t(rom));
+  // add_device(DEFAULT_RSTVEC, boot_rom);
 }
 
 char* sim_t::addr_to_mem(reg_t paddr) {
