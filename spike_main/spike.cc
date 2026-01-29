@@ -47,14 +47,12 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --pmpgranularity=<n>  PMP Granularity in bytes [default 4]\n");
   fprintf(stderr, "  --priv=<m|mu|msu>     RISC-V privilege modes supported [default %s]\n", DEFAULT_PRIV);
   fprintf(stderr, "  --pc=<address>        Override ELF entry point\n");
-  fprintf(stderr, "  --pc-harts=<H:A,...>  Override start PC for specific harts\n"
-                  "                          (e.g. 0:0x2000,1:0x4000)\n");
+  fprintf(stderr, "  --pcs=<H:A,...>       Override start PC for specific harts\n");
   fprintf(stderr, "  --hartids=<a,b,...>   Explicitly specify hartids, default is 0,1,...\n");
   fprintf(stderr, "  --ic=<S>:<W>:<B>      Instantiate a cache model with S sets,\n");
   fprintf(stderr, "  --dc=<S>:<W>:<B>        W ways, and B-byte blocks (with S and\n");
   fprintf(stderr, "  --l2=<S>:<W>:<B>        B both powers of 2).\n");
   fprintf(stderr, "  --big-endian          Use a big-endian memory system.\n");
-  fprintf(stderr, "  --misaligned          Support misaligned memory accesses\n");
   fprintf(stderr, "  --device=<name>       Attach MMIO plugin device from an --extlib library,\n");
   fprintf(stderr, "                          specify --device=<name>,<args> to pass down extra args.\n");
   fprintf(stderr, "  --log-cache-miss      Generate a log of cache miss\n");
@@ -350,7 +348,6 @@ int main(int argc, char** argv)
 
   cfg_t cfg;
 
-  //Map to store <hart_id, start_pc>
   std::map<size_t, reg_t> hart_start_pcs;
 
   auto const device_parser = [&plugin_device_factories](const char *s) {
@@ -387,21 +384,21 @@ int main(int argc, char** argv)
   parser.option('m', 0, 1, [&](const char* s){cfg.mem_layout = parse_mem_layout(s);});
   parser.option(0, "halted", 0, [&](const char UNUSED *s){halted = true;});
   parser.option(0, "rbb-port", 1, [&](const char* s){use_rbb = true; rbb_port = atoul_safe(s);});
-  parser.option(0, "pc", 1, [&](const char* s){cfg.start_pc = strtoull(s, 0, 0);});
+  parser.option(0, "pc", 1, [&](const char* s){cfg.start_pc.set_global(strtoull(s, 0, 0));});
 
-  parser.option(0, "pc-harts", 1, [&](const char* s){
+  parser.option(0, "pcs", 1, [&](const char* s){
     std::string arg(s);
     std::stringstream ss(arg);
     std::string pair;
-    while(std::getline(ss, pair, ',')) {
+    while (std::getline(ss, pair, ',')) {
       size_t delim = pair.find(':');
-      if(delim == std::string::npos) {
-        fprintf(stderr, "Error: --pc-harts format is hartid:addr,hartid:addr\n");
+      if (delim == std::string::npos) {
+        fprintf(stderr, "Error: --pcs format is hartid:addr,hartid:addr\n");
         exit(1);
       }
       size_t hartid = std::stoul(pair.substr(0, delim));
       reg_t addr = std::strtoull(pair.substr(delim+1).c_str(), NULL, 0);
-      hart_start_pcs[hartid] = addr;
+      cfg.start_pc.set_override(hartid, addr);
     }
   });
 
@@ -413,7 +410,6 @@ int main(int argc, char** argv)
   parser.option(0, "dc", 1, [&](const char* s){dc.reset(new dcache_sim_t(s));});
   parser.option(0, "l2", 1, [&](const char* s){l2.reset(cache_sim_t::construct(s, "L2$"));});
   parser.option(0, "big-endian", 0, [&](const char UNUSED *s){cfg.endianness = endianness_big;});
-  parser.option(0, "misaligned", 0, [&](const char UNUSED *s){cfg.misaligned = true;});
   parser.option(0, "log-cache-miss", 0, [&](const char UNUSED *s){log_cache = true;});
   parser.option(0, "isa", 1, [&](const char* s){cfg.isa = s;});
   parser.option(0, "pmpregions", 1, [&](const char* s){cfg.pmpregions = atoul_safe(s);});
@@ -577,10 +573,10 @@ int main(int argc, char** argv)
   s.configure_log(log, log_commits);
   s.set_histogram(histogram);
 
-  for(size_t i = 0; i < cfg.nprocs(); i++) {
+  for (size_t i = 0; i < cfg.nprocs(); i++) {
     size_t hartid = cfg.hartids[i];
 
-    if(hart_start_pcs.count(hartid)){
+    if (hart_start_pcs.count(hartid)) {
       s.get_core(i)->get_state()->pc = hart_start_pcs[hartid];
     }
   }
