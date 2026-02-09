@@ -27,6 +27,11 @@ std::set<size_t> halted_harts;
 std::mutex halt_lock;
 size_t global_nprocs = 0; 
 
+std::set<size_t> get_halted_harts()
+{
+  return halted_harts;
+}
+
 volatile bool ctrlc_pressed = false;
 static void handle_signal(int sig)
 {

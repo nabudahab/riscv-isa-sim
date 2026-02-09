@@ -22,6 +22,11 @@ class mmu_t;
 class remote_bitbang_t;
 class socketif_t;
 
+extern std::set<size_t> halted_harts;
+
+// Get set of halted harts
+std::set<size_t> get_halted_harts();
+
 // Type for holding a pair of device factory and device specialization arguments.
 using device_factory_sargs_t = std::pair<const device_factory_t*, std::vector<std::string>>;
 
