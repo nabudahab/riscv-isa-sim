@@ -348,7 +348,6 @@ int main(int argc, char** argv)
 
   cfg_t cfg;
 
-
   auto const device_parser = [&plugin_device_factories](const char *s) {
     const std::string device_args(s);
     std::vector<std::string> parsed_args;
@@ -573,8 +572,14 @@ int main(int argc, char** argv)
   s.configure_log(log, log_commits);
   s.set_histogram(histogram);
 
+  for (size_t i = 0; i < cfg.nprocs(); i++) {
+    size_t hartid = cfg.hartids[i];
 
-  fprintf(stderr, "DEBUG: Starting simulation\n");
+    if (hart_start_pcs.count(hartid)) {
+      s.get_core(i)->get_state()->pc = hart_start_pcs[hartid];
+    }
+  }
+
   auto return_code = s.run();
 
   for (auto& mem : mems)
