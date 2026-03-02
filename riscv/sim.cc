@@ -38,9 +38,6 @@ extern device_factory_t *plic_factory;
 extern device_factory_t *ns16550_factory;
 
 sim_t::sim_t(const cfg_t *cfg, bool halted,
-             std::vector<std::pair<reg_t, abstract_mem_t *>> mems,
-             const std::vector<device_factory_sargs_t> &plugin_device_factories,
-             const std::vector<std::string> &args,
              std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
              const std::vector<device_factory_sargs_t>& plugin_device_factories,
              const bool dtb_discovery,
@@ -54,6 +51,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     : htif_t(args),
       cfg(cfg),
       mems(mems),
+      dtb_discovery(dtb_discovery),
       dtb_enabled(dtb_enabled),
       log_file(log_path),
       cmd_file(cmd_file),
@@ -66,29 +64,10 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
       log(false),
       remote_bitbang(NULL),
       debug_module(this, dm_config)
-  : htif_t(args),
-    cfg(cfg),
-    mems(mems),
-    dtb_discovery(dtb_discovery),
-    dtb_enabled(dtb_enabled),
-    log_file(log_path),
-    cmd_file(cmd_file),
-    instruction_limit(instruction_limit),
-    sout_(nullptr),
-    current_step(0),
-    current_proc(0),
-    debug(false),
-    histogram_enabled(false),
-    log(false),
-    remote_bitbang(NULL),
-    debug_module(this, dm_config)
 {
   signal(SIGINT, &handle_signal);
 
   sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
-
-  for (auto &x : mems)
-    bus.add_device(x.first, x.second);
 
   bus.add_device(DEBUG_START, &debug_module);
 
@@ -147,12 +126,6 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
       {clint_factory, {}},
       {plic_factory, {}},
       {ns16550_factory, {}}};
-  device_factories.insert(device_factories.end(),
-                          plugin_device_factories.begin(),
-                          plugin_device_factories.end());
-    {clint_factory, {}},
-    {plic_factory, {}},
-    {ns16550_factory, {}}};
 
   // Load dtb_file if provided, otherwise self-generate a dts/dtb
   if (dtb_file)
