@@ -111,6 +111,14 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
                                       log_file.get(), sout_));
       harts[cfg->hartids[i]] = procs[i];
     }
+    for (auto& x : this->mems) {
+      bus.add_device(x.first, x.second);
+    }
+    for (auto& pair : harts) {
+      if (auto pc = cfg->start_pc.get(pair.first)) {
+        pair.second->get_state()->pc = *pc;
+      }
+    }
     return;
   } // otherwise, generate the procs by parsing the DTS
 
@@ -277,15 +285,15 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
                           dtb_discovery_plugin_device_factories.end());
 
     //Remove default memories and use dtb discovered memories
-    mems.clear();
-    dtb_discovery::discover_memory_from_dtb(fdt, mems);
+    this->mems.clear();
+    dtb_discovery::discover_memory_from_dtb(fdt, this->mems);
   }
   //clint, plic, ns16550 are always discovered via dtb, independently from the --dtb_discovery flag
   device_factories.insert(device_factories.end(),
                           plugin_device_factories.begin(),
                           plugin_device_factories.end());
 
-  for (auto& x : mems)
+  for (auto& x : this->mems)
   {
       bus.add_device(x.first, x.second);
   }
@@ -314,6 +322,12 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
         assert(!plic);
         plic = std::static_pointer_cast<plic_t>(dev_ptr);
       }
+    }
+  }
+
+  for (auto& pair : harts) {
+    if (auto pc = cfg->start_pc.get(pair.first)) {
+      pair.second->get_state()->pc = *pc;
     }
   }
 }
@@ -546,11 +560,11 @@ endianness_t sim_t::get_target_endianness() const
 void sim_t::proc_reset(unsigned id)
 {
   debug_module.proc_reset(id);
-  if (id < procs.size())
+  if (harts.count(id))
   {
     if (auto pc = cfg->start_pc.get(id))
     {
-      procs[id]->get_state()->pc = *pc;
+      harts[id]->get_state()->pc = *pc;
     }
   }
 }

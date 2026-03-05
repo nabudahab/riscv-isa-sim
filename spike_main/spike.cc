@@ -397,8 +397,8 @@ int main(int argc, char** argv)
         fprintf(stderr, "Error: --pcs format is hartid:addr,hartid:addr\n");
         exit(1);
       }
-      size_t hartid = std::stoul(pair.substr(0, delim));
-      reg_t addr = std::strtoull(pair.substr(delim+1).c_str(), NULL, 0);
+      size_t hartid = std::strtoull(pair.substr(0, delim).c_str(), 0, 0);
+      reg_t addr = std::strtoull(pair.substr(delim+1).c_str(), 0, 0);
       cfg.start_pc.set_override(hartid, addr);
     }
   });
